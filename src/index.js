@@ -20,17 +20,21 @@ const incomingMiddleware = (event, next) => {
       break
     case 'slack':
       if (!!dashbot.slack) {
-        let data = event.bp.slack && event.bp.slack.getData() || {}
-        const bot = {
-          id: data.self.id,
-          name: data.self.name
+        if (event.type === 'presence_change') {
+          dashbot.slack.logConnect(event.raw)
+        } else {
+          let data = event.bp.slack && event.bp.slack.getData() || {}
+          const bot = {
+            id: data.self.id,
+            name: data.self.name
+          }
+          const team = {
+            id: data.team.id,
+            name: data.team.name
+          }
+          dashbot.slack.logIncoming(bot, team, event.raw)
+          event.bp.logger.debug('slack - incoming', typeof event.raw, JSON.stringify(event.raw, null, 2))
         }
-        const team = {
-          id: data.team.id,
-          name: data.team.name
-        }
-        dashbot.slack.logIncoming(bot, team, event.raw)
-        //event.bp.logger.debug('slack - incoming', typeof event.raw, JSON.stringify(event.raw, null, 2))
       }
       next()
       break
