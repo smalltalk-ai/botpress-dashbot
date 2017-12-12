@@ -19,7 +19,19 @@ const incomingMiddleware = (event, next) => {
       next()
       break
     case 'slack':
-      //event.bp.logger.debug('slack', event)
+      if (!!dashbot.slack) {
+        let data = event.bp.slack && event.bp.slack.getData() || {}
+        const bot = {
+          id: data.self.id,
+          name: data.self.name
+        }
+        const team = {
+          id: data.team.id,
+          name: data.team.name
+        }
+        dashbot.slack.logIncoming(bot, team, event.raw)
+        //event.bp.logger.debug('slack - incoming', typeof event.raw, JSON.stringify(event.raw, null, 2))
+      }
       next()
       break
     default:
@@ -51,7 +63,7 @@ const outgoingMiddleware = (event, next) => {
           channel: event.raw.channelId
         }
         dashbot.slack.logOutgoing(bot, team, reply)
-        event.bp.logger.debug('slack - outgoing', bot, team, reply)
+        //event.bp.logger.debug('slack - outgoing', bot, team, reply)
       }
       next()
       break
