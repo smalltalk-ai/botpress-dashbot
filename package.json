@@ -8,6 +8,17 @@
     "menuIcon": "view_module",
     "webBundle": "bin/web.bundle.js"
   },
+  "keywords": [
+    "dashbot",
+    "analytics",
+    "botpress"
+  ],
+  "version-manager": {
+    "warn": "",
+    "botpress-check": ">= 0.1",
+    "botpress-update": "^1.x",
+    "module-downgrade": "~1.0.x"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "node webpack.js --watch",
