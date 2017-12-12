@@ -1,88 +1,32 @@
 import checkVersion from 'botpress-version-manager'
-import dashbotModule from 'dashbot'
 import path from 'path'
 import fs from 'fs'
 
 import axios from 'axios'
+import Slack from './slack.js'
 
 let config = null
 let dashbot = {
   facebook: null,
-  slack: null
+  slack: new Slack(config)
 }
 
 const incomingMiddleware = (event, next) => {
-  switch (event.platform) {
-    case 'facebook':
-      let raw = event.raw
-      //event.bp.logger.debug('facebook raw', raw)
-      next()
-      break
-    case 'slack':
-      if (!!dashbot.slack) {
-        if (event.type === 'presence_change') {
-          dashbot.slack.logConnect(event.raw)
-        } else {
-          let data = event.bp.slack && event.bp.slack.getData() || {}
-          const bot = {
-            id: data.self.id,
-            name: data.self.name
-          }
-          const team = {
-            id: data.team.id,
-            name: data.team.name
-          }
-          dashbot.slack.logIncoming(bot, team, event.raw)
-          event.bp.logger.debug('slack - incoming', typeof event.raw, JSON.stringify(event.raw, null, 2))
-        }
-      }
-      next()
-      break
-    default:
-      next()
+  if (!!dashbot[event.platform]) {
+    dashbot[event.platform].logIncoming(event)
   }
+  next()
 }
 
 const outgoingMiddleware = (event, next) => {
-  switch (event.platform) {
-    case 'facebook':
-      let raw = event.raw
-      // event.bp.logger.debug('facebook raw', raw)
-      next()
-      break
-    case 'slack':
-      if (!!dashbot.slack) {
-        let data = event.bp.slack && event.bp.slack.getData() || {}
-        const bot = {
-          id: data.self.id,
-          name: data.self.name
-        }
-        const team = {
-          id: data.team.id,
-          name: data.team.name
-        }
-        const reply = {
-          type: 'message',
-          text: event.text,
-          channel: event.raw.channelId
-        }
-        dashbot.slack.logOutgoing(bot, team, reply)
-        //event.bp.logger.debug('slack - outgoing', bot, team, reply)
-      }
-      next()
-      break
-    default:
-      next()
+  if (!!dashbot[event.platform]) {
+    dashbot[event.platform].logOutgoing(event)
   }
+  next()
 }
 
 const saveSettings = () => {
-  if (!!config.facebookApiKey) {
-    dashbot.slack = dashbotModule(config.facebookApiKey).facebook
-  }
-  if (!!config.slackApiKey) {
-    dashbot.slack = dashbotModule(config.slackApiKey).slack
-  }
+  dashbot.slack.setConfig({ apiKey: config && config.slackApiKey || null })
 }
 
 module.exports = {
