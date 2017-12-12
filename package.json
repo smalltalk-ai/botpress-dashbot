@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "axios": "^0.17.1",
-    "botpress-version-manager": "^1.0.4"
+    "botpress-version-manager": "^1.0.4",
+    "dashbot": "^9.4.1"
   }
 }
