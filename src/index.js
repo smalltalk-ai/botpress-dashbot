@@ -3,11 +3,12 @@ import path from 'path'
 import fs from 'fs'
 
 import axios from 'axios'
+import Facebook from './facebook.js'
 import Slack from './slack.js'
 
 let config = null
 let dashbot = {
-  facebook: null,
+  facebook: new Facebook(config),
   slack: new Slack(config)
 }
 
@@ -26,6 +27,7 @@ const outgoingMiddleware = (event, next) => {
 }
 
 const saveSettings = () => {
+  dashbot.facebook.setConfig({ apiKey: config && config.facebookApiKey || null })
   dashbot.slack.setConfig({ apiKey: config && config.slackApiKey || null })
 }
 
