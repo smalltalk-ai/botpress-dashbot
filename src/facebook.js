@@ -45,17 +45,45 @@ class Facebook {
     });
   }
 
+  filterIncoming(data) {
+    let requestBody = null
+
+    let entries = []
+    data.entry.forEach((entry) => {
+      let messages = entry.messaging.filter((message) => !!message.message)
+      if (messages.length) {
+        entry.messaging = messages
+        entries[entries.length] = entry
+      }
+    })
+    if (entries.length) {
+      requestBody = {
+        object: data.object,
+        entry: entries
+      }
+    }
+    return requestBody;
+  }
+
   logIncoming(data) {
+    // only send to Dashbot if Facebook is enabled and the incoming has messages
     if (this.enabled) {
-      this.logger.debug('facebook - incoming', JSON.stringify(data, null, 2))
-      //this.dashbot.logIncoming(data)
+      let filteredData = this.filterIncoming(data)
+      if (!!filteredData) {
+        this.dashbot.logIncoming(data)
+      }
     }
   }
 
   logOutgoing(data) {
-    if (this.enabled) {
-      this.logger.debug('facebook - outgoing', JSON.stringify(data, null, 2))
-      //this.dashbot.logOutgoing(this.getBot(event), this.getTeam(event), reply)
+    // only send to Dashbot if Facebook is enabled and the outgoing is a message
+    if (this.enabled && data.endpoint === 'messages') {
+      let requestData = {
+        url: data.url,
+        qs: { access_token: data.token },
+        json: data.body
+      }
+      this.dashbot.logOutgoing(requestData, data.response)
     }
   }
 }

@@ -13,15 +13,15 @@ let dashbot = {
 }
 
 const incomingMiddleware = (event, next) => {
-  if (!!dashbot[event.platform]) {
-    dashbot[event.platform].logIncoming(event)
+  if (!!dashbot['slack']) {
+    dashbot['slack'].logIncoming(event)
   }
   next()
 }
 
 const outgoingMiddleware = (event, next) => {
-  if (!!dashbot[event.platform]) {
-    dashbot[event.platform].logOutgoing(event)
+  if (!!dashbot['slack']) {
+    dashbot['slack'].logOutgoing(event)
   }
   next()
 }
