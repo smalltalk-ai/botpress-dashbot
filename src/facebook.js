@@ -1,65 +1,61 @@
 import dashbotModule from 'dashbot'
 
 class Facebook {
-  constructor(config) {
+  constructor(bp, config) {
     this.config = config || null
     this.dashbot = null
-    this.connect()
+    this.enabled = false
+    this.logger = bp.logger
+
+    this.connect(bp)
   }
 
-  setConfig(config) {
+  setConfig(bp, config) {
     this.config = config || null
-    this.connect()
+    this.connect(bp)
   }
 
-  connect() {
-    if (!!this.config && !!this.config.apiKey) {
-      this.dashbot = dashbotModule(this.config.apiKey).facebook
-    } else {
-      this.dashbot = null
+  connect(bp) {
+    let apiKey = this.config && this.config.apiKey
+    let messenger = bp._loadedModules['botpress-messenger']
+    this.enabled = !!apiKey && !!messenger
+
+    if (!this.enabled) {
+      if (!messenger) {
+        bp.logger.warn('Unable to enable Dashbot for Facebook because Messenger module is not loaded')
+      }
+      if (!apiKey) {
+        bp.logger.warn('Unable to enable Dashbot for Facebook because Dashbot Api Key is not saved')
+      }
+    }
+
+    this.dashbot = this.enabled ? dashbotModule(this.config.apiKey).facebook : null
+    this.configEvents(bp)
+  }
+
+  configEvents(bp) {
+    //bp.events.on('messenger.*', function (data) {
+      //this.logger.debug('event.on *', this.event, data);
+    //});
+    bp.events.on('messenger.raw_webhook_body', (data) => {
+      this.logIncoming.call(this, data)
+    });
+    bp.events.on('messenger.raw_send_request', (data) => {
+      this.logOutgoing.call(this, data)
+    });
+  }
+
+  logIncoming(data) {
+    if (this.enabled) {
+      this.logger.debug('facebook - incoming', JSON.stringify(data, null, 2))
+      //this.dashbot.logIncoming(data)
     }
   }
 
-  logIncoming(event) {
-    if (!!this.dashbot && !!event.raw && !!event.raw.message) {
-      let data = {
-        object: 'page',
-        entry: [{
-          //id: '',
-          time: (new Date()).getTime(),
-          messaging: [ event.raw ]
-        }]
-      }
-      this.dashbot.logIncoming(data)
-      //event.bp.logger.debug('facebook - incoming', JSON.stringify(data, null, 2))
-    }
-  }
-
-  logOutgoing(event) {
-    if (!!this.dashbot) {
-      const reply = {
-        type: 'message',
-        text: event.text,
-        channel: event.raw.channelId
-      }
+  logOutgoing(data) {
+    if (this.enabled) {
+      this.logger.debug('facebook - outgoing', JSON.stringify(data, null, 2))
       //this.dashbot.logOutgoing(this.getBot(event), this.getTeam(event), reply)
-      //event.bp.logger.debug('slack - outgoing', this.getBot(event), this.getTeam(event), this.getTeam(event), reply)
-    }
-  }
-
-  getBot(event) {
-    let data = event.bp.slack && event.bp.slack.getData() || {}
-    return {
-      id: data.self.id,
-      name: data.self.name
-    }
-  }
-
-  getTeam(event) {
-    let data = event.bp.slack && event.bp.slack.getData() || {}
-    return {
-      id: data.team.id,
-      name: data.team.name
     }
   }
 }

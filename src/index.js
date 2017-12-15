@@ -8,8 +8,8 @@ import Slack from './slack.js'
 
 let config = null
 let dashbot = {
-  facebook: new Facebook(config),
-  slack: new Slack(config)
+  facebook: null,
+  slack: null
 }
 
 const incomingMiddleware = (event, next) => {
@@ -26,9 +26,13 @@ const outgoingMiddleware = (event, next) => {
   next()
 }
 
-const saveSettings = () => {
-  dashbot.facebook.setConfig({ apiKey: config && config.facebookApiKey || null })
+const saveSettings = (bp) => {
+  dashbot.facebook.setConfig(bp, getFacebookConfig())
   dashbot.slack.setConfig({ apiKey: config && config.slackApiKey || null })
+}
+
+const getFacebookConfig = () => {
+  return { apiKey: config && config.facebookApiKey || null }
 }
 
 module.exports = {
@@ -58,12 +62,15 @@ module.exports = {
       description: 'Send analytics data for outgoing messages to Dashbot.'
     })
 
-    config = await configurator.loadAll()
-    saveSettings()
   },
 
   ready: async function(bp, configurator) {
     const router = bp.getRouter('botpress-dashbot')
+
+    config = await configurator.loadAll()
+
+    dashbot.facebook = new Facebook(bp, getFacebookConfig())
+    dashbot.slack = new Slack(config)
 
     router.get('/config', async (req, res) => {
       res.send(await configurator.loadAll())
@@ -73,7 +80,7 @@ module.exports = {
       await configurator.saveAll({ facebookApiKey, slackApiKey })
       config = await configurator.loadAll()
 
-      saveSettings()
+      saveSettings(bp)
 
       res.sendStatus(200)
     })
