@@ -3,30 +3,36 @@ import path from 'path'
 import fs from 'fs'
 
 import axios from 'axios'
+import Facebook from './facebook.js'
 import Slack from './slack.js'
 
 let config = null
 let dashbot = {
   facebook: null,
-  slack: new Slack(config)
+  slack: null
 }
 
 const incomingMiddleware = (event, next) => {
-  if (!!dashbot[event.platform]) {
-    dashbot[event.platform].logIncoming(event)
+  if (!!dashbot['slack']) {
+    dashbot['slack'].logIncoming(event)
   }
   next()
 }
 
 const outgoingMiddleware = (event, next) => {
-  if (!!dashbot[event.platform]) {
-    dashbot[event.platform].logOutgoing(event)
+  if (!!dashbot['slack']) {
+    dashbot['slack'].logOutgoing(event)
   }
   next()
 }
 
-const saveSettings = () => {
+const saveSettings = (bp) => {
+  dashbot.facebook.setConfig(bp, getFacebookConfig())
   dashbot.slack.setConfig({ apiKey: config && config.slackApiKey || null })
+}
+
+const getFacebookConfig = () => {
+  return { apiKey: config && config.facebookApiKey || null }
 }
 
 module.exports = {
@@ -56,12 +62,15 @@ module.exports = {
       description: 'Send analytics data for outgoing messages to Dashbot.'
     })
 
-    config = await configurator.loadAll()
-    saveSettings()
   },
 
   ready: async function(bp, configurator) {
     const router = bp.getRouter('botpress-dashbot')
+
+    config = await configurator.loadAll()
+
+    dashbot.facebook = new Facebook(bp, getFacebookConfig())
+    dashbot.slack = new Slack(config)
 
     router.get('/config', async (req, res) => {
       res.send(await configurator.loadAll())
@@ -71,7 +80,7 @@ module.exports = {
       await configurator.saveAll({ facebookApiKey, slackApiKey })
       config = await configurator.loadAll()
 
-      saveSettings()
+      saveSettings(bp)
 
       res.sendStatus(200)
     })
